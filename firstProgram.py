@@ -29,10 +29,7 @@ class App(cevent.CEvent):
     def __init__(self):
         self.running = True  
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
-        
-        #with open('{0}/config.json'.format(self.dir_path)) as config_file:
-            #self.config = json.load(config_file)
-                
+       
         #setting default values
         self._display_surf = None
         self.size = self.width, self.height = (800, 480)
@@ -101,9 +98,7 @@ class App(cevent.CEvent):
         
         #setting default weather icons path
         self.icon_path = "{0}/res/img/weather_{1}/{2}.png"
-        
-        
-        
+     
     def on_init(self):
         
         self._running = True
@@ -150,7 +145,6 @@ class App(cevent.CEvent):
         #ht values
         self._ht_values = self.getStat(self.status_Server, self.PARAMS)
         self.set_ht_update_time()
-        
                
     #eventhandler
     def on_event(self, event):
@@ -164,7 +158,6 @@ class App(cevent.CEvent):
                 self.on_mbutton_down(event)
             elif event.button == 3:
                 self.on_rbutton_down(event)
-
     
     def on_loop(self):
         
@@ -318,8 +311,7 @@ class App(cevent.CEvent):
                 _forecast_temp_max = _forecast_temp_max + (math.ceil(_weather_data_onecall['daily'][_dt]['temp']['max']) , )
                 
                 _dt += 1
-
-            
+          
             self.weather_update_time = self.curr_time_H + 1
             if(self.weather_update_time >= 24):
                 self.weather_update_time = 0
@@ -360,8 +352,7 @@ class App(cevent.CEvent):
         self.weather_temp_surf = self.middlefont.render(str(int(self.weather[0]))+u"\u00B0{0}".format(self.unit), True, self.white)
         self.weather_temp_min_surf = self.tinyfont.render(str(int(self.weather[1]))+u"\u00B0{0}".format(self.unit), True, self.blue)
         self.weather_temp_max_surf = self.tinyfont.render(str(int(self.weather[2]))+u"\u00B0{0}".format(self.unit), True, self.blue)
-        
-        
+                
         if(self.current_day == "So"):
             self.daycolor = self.red
         elif(self.current_day =="Sa"):
@@ -506,8 +497,7 @@ class App(cevent.CEvent):
         self.units = self.config['weather']['units']
         self.onecall = self.config['weather']['onecall']
         self.weather_icon_size = self.config['weather']['iconsize']
-        
-           
+                  
 if __name__ == "__main__" : 
     theApp = App()
     event = App()
