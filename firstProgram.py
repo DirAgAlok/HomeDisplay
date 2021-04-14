@@ -70,6 +70,8 @@ class App(cevent.CEvent):
         self.bgIMG = "ColorBlack.png"
         self.onecall = True
         self.unit = "C"
+        self.timezone = 0
+        self.utctime = False
          
         #setting default colors
         self.grey = (30, 30, 30)
@@ -140,14 +142,14 @@ class App(cevent.CEvent):
         #getting values at startup
         #time
         self.getDateTime()
-        #ht values
-        self._ht_values = self.getStat(self.status_Server, self.PARAMS)
-        self.set_ht_update_time()
         #weather values
         if(self.onecall):
             self.weather = self.getWeather_onecall(self.weather_url_onecall, self.api_key, self.location_lon, self.location_lat, self.units, self.exclude)
         else:
             self.weather = self.getWeather(self.weather_url, self.location_id, self.api_key, self.units)
+        #ht values
+        self._ht_values = self.getStat(self.status_Server, self.PARAMS)
+        self.set_ht_update_time()
         
                
     #eventhandler
@@ -248,13 +250,11 @@ class App(cevent.CEvent):
             else:
                 tmp = round(data['data']['device_status']['tmp']['value'], 1)
                 hum = round(data['data']['device_status']['hum']['value'], 1)
-                time = data['data']['device_status']['time'] #'old' api time seems partly broken at 24.3.2021
-                if(time == ""):
-                    #'new' api time (behind 1h)
-                    _updated = self.split_string(data['data']['device_status']['_updated'], " ")
-                    _updated_H = int(self.split_string(_updated[1], ":")[0]) +1
-                    _updated_M = self.split_string(_updated[1], ":")[1]
-                    time = str(_updated_H) + ":" + str(_updated_M)
+                uxtime = data['data']['device_status']['unixtime']
+                if(self.utctime):
+                    time = datetime.utcfromtimestamp(uxtime).strftime("%H:%M")
+                else:    
+                    time = datetime.fromtimestamp(uxtime).strftime("%H:%M")
                 return tmp, hum, time
         else:
             return self._ht_values_temp
@@ -273,6 +273,7 @@ class App(cevent.CEvent):
             _weather_tmp_max = math.floor(_weather_data['main']['temp_max'])
             _weather_tmp_min = math.ceil(_weather_data['main']['temp_min'])
             _weather_icon = _weather_data['weather'][0]['icon']
+            self.timezone = _weather_data['timezone']
               
             self.weather_update_time = self.curr_time_H + 1
             if(self.weather_update_time >= 24):
@@ -301,6 +302,7 @@ class App(cevent.CEvent):
             _weather_curr_icon = _weather_data_onecall['current']['weather'][0]['icon']
             _weather_day_min = math.floor(_weather_data_onecall['daily'][0]['temp']['min'])
             _weather_day_max = math.ceil(_weather_data_onecall['daily'][0]['temp']['max'])
+            self.timezone = _weather_data_onecall['timezone_offset']
             
             #forecast
             _dt = 0
@@ -309,7 +311,8 @@ class App(cevent.CEvent):
             _forecast_temp_min = ()
             _forecast_temp_max = ()
             while _dt <8:
-                _forecastday = _forecastday +  (time.strftime("%a", time.localtime(int(_weather_data_onecall['daily'][_dt]['dt']))) , )
+                #_forecastday = _forecastday +  (time.strftime("%a", time.localtime(int(_weather_data_onecall['daily'][_dt]['dt']))) , )
+                _forecastday = _forecastday + (datetime.fromtimestamp(int(_weather_data_onecall['daily'][_dt]['dt'])).strftime("%a") , )
                 _forecast_icon = _forecast_icon + (_weather_data_onecall['daily'][_dt]['weather'][0]['icon'] , )
                 _forecast_temp_min = _forecast_temp_min + (math.floor(_weather_data_onecall['daily'][_dt]['temp']['min']) , )
                 _forecast_temp_max = _forecast_temp_max + (math.ceil(_weather_data_onecall['daily'][_dt]['temp']['max']) , )
@@ -456,8 +459,7 @@ class App(cevent.CEvent):
             
             posXcount +=1
             fcc +=1
-
-    
+   
     def on_lbutton_down(self, event):
         if(self.onecall):
             self.uiswitch += 1
@@ -491,6 +493,7 @@ class App(cevent.CEvent):
         self.ht_id = self.config['shelly']['id']
         self.auth_key = self.config['shelly']['authKey']
         self.PARAMS = {'auth_key': self.auth_key, 'id' : self.ht_id}
+        self.utctime = self.config['utctime']
         
         #setting OpenWeatherMap.org values
         self.weather_url = self.config['weather']['url']
