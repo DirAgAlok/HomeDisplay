@@ -21,6 +21,7 @@ set values as needed:
 * bg_IMG: background image
 * uirevtime: time the forecast ui is visible when screen is clicked (only if weather -> onecall: true)
 * unit: C or F
+* utctime: true/false
 * font
   * name: name of font file
   * size (change as you need)
