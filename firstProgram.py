@@ -15,11 +15,9 @@ import sys, pygame
 from pygame.locals import *
 import cevent
 import requests
-import time
 from datetime import datetime, date
 import locale
 import os
-import threading
 import math
 import json
 
