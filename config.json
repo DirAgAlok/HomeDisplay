@@ -1,0 +1,53 @@
+{
+    "fullscreen": false,
+    "display_size": [800, 480],
+    "mouse_visible": 0,
+    "bg_IMG": "ColorBlack.png",
+    "uirevtime": 30,
+    "unit": "C",
+
+    "font":{
+            "name": "MyFont.otf",
+            "size":[
+                {
+                "tiny": 25,
+                "small": 50,
+                "middle": 70,
+                "big": 150,
+                "giant": 200
+                }
+            ]  
+    },   
+
+    "colors":{
+            "grey": [30, 30, 30],
+            "light_grey": [128, 128, 128],
+            "white": [255, 255, 255],
+            "blue": [0, 136, 204],
+            "red": [195, 28, 74]
+    },
+
+    "shelly":{
+        "statusServer":"YOUR-SHELLY-SERVER",
+        "id":"YOUR-HT-DEVICE-ID",
+        "authKey": "YOUR-SHELLY-AUTHKEY",
+        "upinterval": 12
+    },
+
+    "weather":{
+        "apikey":"YOUR-OPENWEATHERMAP-API-KEY",
+        "url":"https://api.openweathermap.org/data/2.5/weather",
+        "urlonecall":"https://api.openweathermap.org/data/2.5/onecall",
+        "locationid":"YOUR-LOCATION-ID",
+        "lon": "YOUR-LONGITUDE",
+        "lat":"YOUR_LATITUDE",
+        "units":"YOUR_UNITS",
+        "exclude": "minutely,hourly,alerts",
+        "onecall": true,
+        "iconsize": "big"    
+    }
+
+
+
+
+}
