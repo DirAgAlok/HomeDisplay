@@ -5,7 +5,7 @@
     "bg_IMG": "ColorBlack.png",
     "uirevtime": 30,
     "unit": "C",
-    "utctime": false
+    "utctime": false,
 
     "font":{
             "name": "MyFont.otf",
