@@ -60,9 +60,22 @@ Weather icons: [OpenWeatherMap](https://openweathermap.org/)
 
 provided background images made by [Florian Kolaritsch](https://www.instagram.com/flovahkiin_/)
 
+shelly api key and server
+
 ![ShellyAuthKeyServer](https://user-images.githubusercontent.com/76942248/114697822-a6ec0f00-9d1e-11eb-86c2-75d61ff6927a.png)
+
+shelly device id
+
 ![ShellyDeviceID](https://user-images.githubusercontent.com/76942248/114697831-a94e6900-9d1e-11eb-8082-dfdedde9b6a6.png)
+
+openweathermap api key
+
 ![OpenWeatherMapAPIKey](https://user-images.githubusercontent.com/76942248/114697847-ae131d00-9d1e-11eb-90da-29f0c5eaabde.png)
+
+if there is a problem with the update time of your shelly ht edit the location settings from automatic detection to manual and fill in your location settings
+
+![locationsetting](https://user-images.githubusercontent.com/76942248/114759329-51375700-9d5e-11eb-8835-f2755aa89d36.png)
+
 
 
   
