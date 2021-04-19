@@ -1,23 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# /etc/init.d/firstProgram.py
-### BEGIN INIT INFO
-# Provides:          firstProgram.py
-# Required-Start:    $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Short-Description: Start daemon at boot time
-# Description:       Enable service provided by daemon.
-### END INIT INFO
 
 import sys, pygame
 from pygame.locals import *
 import cevent
 import requests
+#import time
 from datetime import datetime, date
 import locale
 import os
+#import threading
 import math
 import json
 
@@ -27,7 +19,7 @@ class App(cevent.CEvent):
     def __init__(self):
         self.running = True  
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
-       
+                
         #setting default values
         self._display_surf = None
         self.size = self.width, self.height = (800, 480)
@@ -96,7 +88,9 @@ class App(cevent.CEvent):
         
         #setting default weather icons path
         self.icon_path = "{0}/res/img/weather_{1}/{2}.png"
-     
+        
+        
+        
     def on_init(self):
         
         self._running = True
@@ -143,6 +137,7 @@ class App(cevent.CEvent):
         #ht values
         self._ht_values = self.getStat(self.status_Server, self.PARAMS)
         self.set_ht_update_time()
+        
                
     #eventhandler
     def on_event(self, event):
@@ -156,11 +151,11 @@ class App(cevent.CEvent):
                 self.on_mbutton_down(event)
             elif event.button == 3:
                 self.on_rbutton_down(event)
+
     
     def on_loop(self):
         
         self.getDateTime()
-        
         if(self.ht_update_time >= self.curr_time_M and self.ht_need_to_update == 1):
             self.ht_need_to_update = 0  
             
@@ -232,7 +227,11 @@ class App(cevent.CEvent):
     def getStat(self, serverName, params):
         
         self._ht_values_temp = self._ht_values
-        self.r = requests.post(url = serverName, data = params)
+        
+        try:
+            self.r = requests.post(url = serverName, data = params)
+        except:
+            return self._ht_values_temp
         
         if(self.r.status_code == 200):
             data = self.r.json()
@@ -256,7 +255,11 @@ class App(cevent.CEvent):
         params = {'id': city_id, 'appid': api_key, 'units': units}
         _weather_temp = self.weather
         
-        self.weather_req = requests.post(url = weather_url, params = params)
+        try:
+            self.weather_req_onecall = requests.get(url=weather_url_onecall, params=params)
+        except:
+            self.weather_need_update = 0
+            return _weather_temp
     
         if(self.weather_req.status_code == 200):
             _weather_data = self.weather_req.json()
@@ -280,9 +283,13 @@ class App(cevent.CEvent):
         
         params = {'appid': api_key, 'lon': lon, 'lat': lat, 'units': units, 'exclude': exclude}
         _weather_temp = self.weather
-
-        self.weather_req_onecall = requests.get(url=weather_url_onecall, params=params)
-
+        
+        try:
+            self.weather_req_onecall = requests.get(url=weather_url_onecall, params=params)
+        except:
+            self.weather_need_update = 0
+            return _weather_temp
+        
         if(self.weather_req_onecall.status_code == 200):
             try:
                 _weather_data_onecall = self.weather_req_onecall.json()
@@ -309,7 +316,8 @@ class App(cevent.CEvent):
                 _forecast_temp_max = _forecast_temp_max + (math.ceil(_weather_data_onecall['daily'][_dt]['temp']['max']) , )
                 
                 _dt += 1
-          
+
+            
             self.weather_update_time = self.curr_time_H + 1
             if(self.weather_update_time >= 24):
                 self.weather_update_time = 0
@@ -350,7 +358,8 @@ class App(cevent.CEvent):
         self.weather_temp_surf = self.middlefont.render(str(int(self.weather[0]))+u"\u00B0{0}".format(self.unit), True, self.white)
         self.weather_temp_min_surf = self.tinyfont.render(str(int(self.weather[1]))+u"\u00B0{0}".format(self.unit), True, self.blue)
         self.weather_temp_max_surf = self.tinyfont.render(str(int(self.weather[2]))+u"\u00B0{0}".format(self.unit), True, self.blue)
-                
+        
+        
         if(self.current_day == "So"):
             self.daycolor = self.red
         elif(self.current_day =="Sa"):
@@ -466,6 +475,7 @@ class App(cevent.CEvent):
         self.bgIMG = self.config['bg_IMG'] 
         self.uirevtime = self.config['uirevtime']  
         self.unit = self.config['unit']
+        self.locale = self.config['locale']
         self.font ="{0}/res/{1}".format(self.dir_path, self.config['font']['name'])
         self.tiny = self.config['font']['size'][0]['tiny'] 
         self.small = self.config['font']['size'][0]['small']
@@ -476,6 +486,7 @@ class App(cevent.CEvent):
         self.white = self.config['colors']['white']
         self.blue = self.config['colors']['blue']
         self.red = self.config['colors']['red']
+        
         
         #Setting shelly values
         self.status_Server = self.config['shelly']['statusServer']
@@ -495,7 +506,8 @@ class App(cevent.CEvent):
         self.units = self.config['weather']['units']
         self.onecall = self.config['weather']['onecall']
         self.weather_icon_size = self.config['weather']['iconsize']
-                  
+        
+           
 if __name__ == "__main__" : 
     theApp = App()
     event = App()
