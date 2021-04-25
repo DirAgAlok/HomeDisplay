@@ -242,7 +242,10 @@ class App(cevent.CEvent):
                 hum = round(data['data']['device_status']['hum']['value'], 1)
                 uxtime = data['data']['device_status']['unixtime']
                 if(uxtime == 0):
-                   time = self._ht_values_temp[2]
+                   try:
+                        time = self._ht_values_temp[2]
+                   except:
+                        time = self.time
                 else:
                     if(self.utctime):
                         time = datetime.utcfromtimestamp(uxtime).strftime("%H:%M")
