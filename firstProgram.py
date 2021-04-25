@@ -195,7 +195,7 @@ class App(cevent.CEvent):
         if(self.uiswitch):
             self.forecastUI()
             
-            if(self.uitime + self.uirevtime < int(self.seconds)):
+            if(self.uirevtime_temp == int(self.seconds)):
                 self.uiswitch = False           
         else:
             self.mainUI()
@@ -468,6 +468,9 @@ class App(cevent.CEvent):
         if(self.onecall):
             self.uiswitch += 1
             self.uitime = int(self.seconds)
+            self.uirevtime_temp = self.uitime + self.uirevtime
+            if(self.uirevtime_temp > 60):
+                self.uirevtime_temp = self.uirevtime_temp - 60
             if(self.uiswitch >1):
                 self.uiswitch = 0
         else:
