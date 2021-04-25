@@ -241,10 +241,13 @@ class App(cevent.CEvent):
                 tmp = round(data['data']['device_status']['tmp']['value'], 1)
                 hum = round(data['data']['device_status']['hum']['value'], 1)
                 uxtime = data['data']['device_status']['unixtime']
-                if(self.utctime):
-                    time = datetime.utcfromtimestamp(uxtime).strftime("%H:%M")
-                else:    
-                    time = datetime.fromtimestamp(uxtime).strftime("%H:%M")
+                if(uxtime == 0):
+                   time = self._ht_values_temp[2]
+                else:
+                    if(self.utctime):
+                        time = datetime.utcfromtimestamp(uxtime).strftime("%H:%M")
+                    else:    
+                        time = datetime.fromtimestamp(uxtime).strftime("%H:%M")
                 return tmp, hum, time
         else:
             return self._ht_values_temp
