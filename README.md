@@ -56,8 +56,6 @@ set values as needed:
 ## additional info:
 Font: [the wild breath of zelda](https://www.dafont.com/de/the-wild-breath-of-zelda.font)
 
-Weather icons: [OpenWeatherMap](https://openweathermap.org/)
-
 provided background images made by [Florian Kolaritsch](https://www.instagram.com/flovahkiin_/)
 
 shelly api key and server
