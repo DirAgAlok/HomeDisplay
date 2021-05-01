@@ -5,13 +5,13 @@ import sys, pygame
 from pygame.locals import *
 import cevent
 import requests
-#import time
+import time
 from datetime import datetime, date
 import locale
 import os
-#import threading
 import math
 import json
+import hashlib
 
 
 
@@ -25,6 +25,7 @@ class App(cevent.CEvent):
         self.size = self.width, self.height = (800, 480)
         self._backgroundImg = None
         self.mouse_visible = 0
+        self.mouse_pos = []
         self.fullscreen = False
         
         self._ht_values = []
@@ -54,11 +55,14 @@ class App(cevent.CEvent):
         self.uiswitch = False
         self.uitime = 0
         self.uirevtime = 30
+        self.uirevtime_temp = 0
         self.bgIMG = "ColorBlack.png"
         self.onecall = True
         self.unit = "C"
         self.timezone = 0
         self.utctime = False
+        self.block_size = 65536
+        self.hash1 = 0
          
         #setting default colors
         self.grey = (30, 30, 30)
@@ -88,18 +92,14 @@ class App(cevent.CEvent):
         
         #setting default weather icons path
         self.icon_path = "{0}/res/img/weather_{1}/{2}.png"
-        
-        
-        
+    
     def on_init(self):
         
         self._running = True
         pygame.init()
         
-        config_file = open('{0}/config.json'.format(self.dir_path))
-        self.config = json.load(config_file)
-        self.set_config_values()
-        config_file.close()
+        self.load_config()
+        self.get_file_hash()
         
         pygame.mouse.set_visible(self.mouse_visible)
                      
@@ -126,6 +126,8 @@ class App(cevent.CEvent):
         self._display_surf.fill(self.grey)
         self._display_surf.blit(self._backgroundImg, self._backgroundImgRect)
 
+        pygame.display.flip()
+        
         #getting values at startup
         #time
         self.getDateTime()
@@ -137,7 +139,7 @@ class App(cevent.CEvent):
         #ht values
         self._ht_values = self.getStat(self.status_Server, self.PARAMS)
         self.set_ht_update_time()
-        
+        time.sleep(2)
                
     #eventhandler
     def on_event(self, event):
@@ -151,20 +153,21 @@ class App(cevent.CEvent):
                 self.on_mbutton_down(event)
             elif event.button == 3:
                 self.on_rbutton_down(event)
-
-    
+  
     def on_loop(self):
         
+        self.mouse_pos = pygame.mouse.get_pos()
         self.getDateTime()
         if(self.ht_update_time >= self.curr_time_M and self.ht_need_to_update == 1):
-            self.ht_need_to_update = 0  
-            
+            self.ht_need_to_update = 0 
+                 
         if(self.ht_update_time <= self.curr_time_M):
             if(self.ht_need_to_update == 0):
                 self._ht_values = self.getStat(self.status_Server, self.PARAMS)
                 self.ht_need_to_update = 1
                 self.set_ht_update_time()
-                    
+                self.get_file_hash()
+                            
         if(self.weather_update_time == self.curr_time_H and self.weather_need_update == 1):
             self.weather_need_update = 0
                     
@@ -177,13 +180,15 @@ class App(cevent.CEvent):
                 self.weather_need_update = 1
                                                
     def set_ht_update_time(self):
-        self.ht_up_time = self.split_string(str(self._ht_values[2]),":")
-        try:
-            self.ht_up_time_M = int(self.ht_up_time[1])
-        except:
-            self.ht_up_time_M = self.curr_time_M + self.ht_up_interval
         
-        self.ht_update_time = self.ht_up_time_M + self.ht_up_interval
+        try:
+            self.ht_up_time = self.split_string(str(self._ht_values[2]),":")
+            self.ht_up_time_M = int(self.ht_up_time[1])
+            
+        except:
+            self.ht_up_time_M = self.curr_time_M
+        
+        self.ht_update_time = self.ht_up_time_M + self.ht_up_interval  
         
         if(self.ht_update_time >= 60):
             self.ht_update_time -= 60
@@ -227,34 +232,28 @@ class App(cevent.CEvent):
     def getStat(self, serverName, params):
         
         self._ht_values_temp = self._ht_values
-        
+       
         try:
             self.r = requests.post(url = serverName, data = params)
-        except:
-            return self._ht_values_temp
-        
-        if(self.r.status_code == 200):
             data = self.r.json()
             if(data == "{}"):
                 return self._ht_values_temp;
             else:
                 tmp = round(data['data']['device_status']['tmp']['value'], 1)
+                unit = data['data']['device_status']['tmp']['units']
                 hum = round(data['data']['device_status']['hum']['value'], 1)
                 uxtime = data['data']['device_status']['unixtime']
                 if(uxtime == 0):
-                   try:
-                        time = self._ht_values_temp[2]
-                   except:
-                        time = self.time
+                    time = self.time
                 else:
                     if(self.utctime):
                         time = datetime.utcfromtimestamp(uxtime).strftime("%H:%M")
                     else:    
                         time = datetime.fromtimestamp(uxtime).strftime("%H:%M")
-                return tmp, hum, time
-        else:
+                return tmp, hum, time, unit
+        except:
             return self._ht_values_temp
-    
+
     #get weather data with currtent min and max temp
     def getWeather(self, weather_url, city_id, api_key, units):
         
@@ -262,7 +261,7 @@ class App(cevent.CEvent):
         _weather_temp = self.weather
         
         try:
-            self.weather_req_onecall = requests.get(url=weather_url_onecall, params=params)
+            self.weather_req = requests.get(url=weather_url, params=params)
         except:
             self.weather_need_update = 0
             return _weather_temp
@@ -300,7 +299,7 @@ class App(cevent.CEvent):
             try:
                 _weather_data_onecall = self.weather_req_onecall.json()
             except:
-                _weather_data_onecall = _weather_temp
+                return _weather_temp
                 
             _weather_curr_temp = math.ceil(_weather_data_onecall['current']['temp'])
             _weather_curr_icon = _weather_data_onecall['current']['weather'][0]['icon']
@@ -315,7 +314,6 @@ class App(cevent.CEvent):
             _forecast_temp_min = ()
             _forecast_temp_max = ()
             while _dt <8:
-                #_forecastday = _forecastday +  (time.strftime("%a", time.localtime(int(_weather_data_onecall['daily'][_dt]['dt']))) , )
                 _forecastday = _forecastday + (datetime.fromtimestamp(int(_weather_data_onecall['daily'][_dt]['dt'])).strftime("%a") , )
                 _forecast_icon = _forecast_icon + (_weather_data_onecall['daily'][_dt]['weather'][0]['icon'] , )
                 _forecast_temp_min = _forecast_temp_min + (math.floor(_weather_data_onecall['daily'][_dt]['temp']['min']) , )
@@ -323,7 +321,6 @@ class App(cevent.CEvent):
                 
                 _dt += 1
 
-            
             self.weather_update_time = self.curr_time_H + 1
             if(self.weather_update_time >= 24):
                 self.weather_update_time = 0
@@ -350,7 +347,7 @@ class App(cevent.CEvent):
         self.clearWindow()
         #format surfaces
         try:
-            self.temp_humi_surf = self.bigfont.render(str(self._ht_values[0]) +u"\u00B0{0}  ".format(self.unit) + str(self._ht_values[1]) + "%" , True , self.white)    #u"\u00B0C" = °C in unicode 
+            self.temp_humi_surf = self.bigfont.render(str(self._ht_values[0]) +u"\u00B0{0}  ".format(self._ht_values[3]) + str(self._ht_values[1]) + "%" , True , self.white)    #u"\u00B0C" = °C in unicode 
         except:
             self.temp_humi_surf = self.bigfont.render("Connect Error", True, self.red)
         self.ht_up_time_surf = self.tinyfont.render(str(self._ht_values[2]), True, self.blue)
@@ -364,8 +361,7 @@ class App(cevent.CEvent):
         self.weather_temp_surf = self.middlefont.render(str(int(self.weather[0]))+u"\u00B0{0}".format(self.unit), True, self.white)
         self.weather_temp_min_surf = self.tinyfont.render(str(int(self.weather[1]))+u"\u00B0{0}".format(self.unit), True, self.blue)
         self.weather_temp_max_surf = self.tinyfont.render(str(int(self.weather[2]))+u"\u00B0{0}".format(self.unit), True, self.blue)
-        
-        
+
         if(self.current_day == "So"):
             self.daycolor = self.red
         elif(self.current_day =="Sa"):
@@ -395,7 +391,7 @@ class App(cevent.CEvent):
         #weather
         _weather_min_max_distance = 20
         _weather_icon_posX = _current_time_surf_posX/2 - self.weather_icon_surf.get_width()/2 
-        _weather_icon_posY = _current_time_surf_posY #- self.weather_icon_surf.get_height()/3 
+        _weather_icon_posY = _current_time_surf_posY
         _weather_temp_posX = _current_time_surf_posX/2 - self.weather_temp_surf.get_width()/2
         _weather_temp_posY = _weather_icon_posY + self.weather_icon_surf.get_height()
         _weather_min_max_surf_width = self.weather_temp_min_surf.get_width() + self.weather_temp_max_surf.get_width() + _weather_min_max_distance
@@ -466,16 +462,24 @@ class App(cevent.CEvent):
    
     def on_lbutton_down(self, event):
         if(self.onecall):
-            self.uiswitch += 1
+            if(self.uiswitch):
+                self._ht_values = self.getStat(self.status_Server, self.PARAMS)
+                self.set_ht_update_time()
+            self.uiswitch = not self.uiswitch
             self.uitime = int(self.seconds)
             self.uirevtime_temp = self.uitime + self.uirevtime
+            
             if(self.uirevtime_temp > 60):
                 self.uirevtime_temp = self.uirevtime_temp - 60
-            if(self.uiswitch >1):
-                self.uiswitch = 0
-        else:
-            self.uiswitch = 0
-      
+   
+    def load_config(self):
+        self.config_file = open('{0}/config.json'.format(self.dir_path))
+        
+        self.config = json.load(self.config_file)
+        self.set_config_values()
+       
+        self.config_file.close()  
+     
     def set_config_values(self):
         #setting UI values
         self.fullscreen = self.config['fullscreen'] 
@@ -484,6 +488,7 @@ class App(cevent.CEvent):
         self.bgIMG = self.config['bg_IMG'] 
         self.uirevtime = self.config['uirevtime']  
         self.unit = self.config['unit']
+        self.utctime = self.config['utctime']
         self.locale = self.config['locale']
         self.font ="{0}/res/{1}".format(self.dir_path, self.config['font']['name'])
         self.tiny = self.config['font']['size'][0]['tiny'] 
@@ -495,14 +500,13 @@ class App(cevent.CEvent):
         self.white = self.config['colors']['white']
         self.blue = self.config['colors']['blue']
         self.red = self.config['colors']['red']
-        
-        
+ 
         #Setting shelly values
         self.status_Server = self.config['shelly']['statusServer']
         self.ht_id = self.config['shelly']['id']
         self.auth_key = self.config['shelly']['authKey']
         self.PARAMS = {'auth_key': self.auth_key, 'id' : self.ht_id}
-        self.utctime = self.config['utctime']
+        self.ht_up_interval = self.config['shelly']['upinterval']
         
         #setting OpenWeatherMap.org values
         self.weather_url = self.config['weather']['url']
@@ -516,7 +520,20 @@ class App(cevent.CEvent):
         self.onecall = self.config['weather']['onecall']
         self.weather_icon_size = self.config['weather']['iconsize']
         
-           
+    def get_file_hash(self):
+        hasher = hashlib.md5()
+        with open('{0}/config.json'.format(self.dir_path), 'rb') as afile:
+            buf = afile.read()
+            hasher.update(buf)
+            hash2 = hasher.hexdigest()
+            if(self.hash1 == 0):
+                self.hash1 = hash2
+            
+            if(self.hash1 != hash2):
+                time.sleep(2)
+                self.load_config()
+                self.hash1 = hash2
+          
 if __name__ == "__main__" : 
     theApp = App()
     event = App()
